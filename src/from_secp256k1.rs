@@ -40,6 +40,20 @@ impl From<crate::XOnlyPublicKey> for ::secp256k1::XOnlyPublicKey {
     }
 }
 
+// ecdsa::Signature — both use [u8; 64] compact representation internally
+#[cfg(feature = "secp256k1")]
+impl From<::secp256k1::ecdsa::Signature> for crate::ecdsa::Signature {
+    fn from(sig: ::secp256k1::ecdsa::Signature) -> Self {
+        crate::ecdsa::Signature::from_compact(&sig.serialize_compact()).expect("same format")
+    }
+}
+#[cfg(feature = "secp256k1")]
+impl From<crate::ecdsa::Signature> for ::secp256k1::ecdsa::Signature {
+    fn from(sig: crate::ecdsa::Signature) -> Self {
+        ::secp256k1::ecdsa::Signature::from_compact(&sig.serialize_compact()).expect("same format")
+    }
+}
+
 // ::secp256k1::Keypair → crate::SecretKey (extract sk bytes, re-parse)
 #[cfg(feature = "secp256k1")]
 impl From<::secp256k1::Keypair> for crate::SecretKey {
