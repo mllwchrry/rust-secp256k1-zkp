@@ -102,7 +102,7 @@ impl Scalar {
     pub(crate) fn as_be_bytes(&self) -> &[u8; 32] { &self.0 }
 
     pub(crate) fn as_c_ptr(&self) -> *const u8 {
-        use secp256k1_sys::CPtr;
+        use crate::ffi::CPtr;
 
         self.as_be_bytes().as_c_ptr()
     }

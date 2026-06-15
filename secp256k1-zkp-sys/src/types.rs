@@ -31,7 +31,7 @@ impl AlignedType {
     pub const ZERO: AlignedType = AlignedType([0u8; 16]);
 }
 
-#[cfg(all(feature = "alloc", not(rust_secp_no_symbol_renaming)))]
+#[cfg(all(feature = "alloc", not(rust_secp_zkp_no_symbol_renaming)))]
 pub(crate) const ALIGN_TO: usize = core::mem::align_of::<AlignedType>();
 
 #[cfg(test)]

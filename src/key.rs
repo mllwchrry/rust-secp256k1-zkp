@@ -9,7 +9,6 @@ use core::{fmt, ptr, str};
 #[cfg(feature = "serde")]
 use serde::ser::SerializeTuple;
 
-use crate::ellswift::ElligatorSwift;
 use crate::ffi::types::c_uint;
 use crate::ffi::{self, CPtr};
 use crate::Error::{self, InvalidPublicKey, InvalidPublicKeySum, InvalidSecretKey};
@@ -19,7 +18,7 @@ use crate::ThirtyTwoByteHash;
 #[cfg(feature = "global-context")]
 use crate::SECP256K1;
 use crate::{
-    constants, ecdsa, from_hex, schnorr, Message, Scalar, Secp256k1, Signing, Verification,
+    constants, from_hex, Scalar, Secp256k1, Signing, Verification,
 };
 
 /// Secret key - a 256-bit key used to create ECDSA and Taproot signatures.
@@ -335,13 +334,6 @@ impl SecretKey {
         }
     }
 
-    /// Constructs an ECDSA signature for `msg` using the global [`SECP256K1`] context.
-    #[inline]
-    #[cfg(feature = "global-context")]
-    pub fn sign_ecdsa(&self, msg: impl Into<Message>) -> ecdsa::Signature {
-        SECP256K1.sign_ecdsa(msg, self)
-    }
-
     /// Returns the [`Keypair`] for this [`SecretKey`].
     ///
     /// This is equivalent to using [`Keypair::from_secret_key`].
@@ -448,11 +440,7 @@ impl PublicKey {
             PublicKey(pk)
         }
     }
-    /// Creates a new public key from an [`ElligatorSwift`].
-    #[inline]
-    pub fn from_ellswift(ellswift: ElligatorSwift) -> PublicKey { ElligatorSwift::decode(ellswift) }
-
-    /// Creates a new public key from a [`SecretKey`] and the global [`SECP256K1`] context.
+/// Creates a new public key from a [`SecretKey`] and the global [`SECP256K1`] context.
     #[inline]
     #[cfg(feature = "global-context")]
     pub fn from_secret_key_global(sk: &SecretKey) -> PublicKey {
@@ -735,15 +723,6 @@ impl PublicKey {
         }
     }
 
-    /// Checks that `sig` is a valid ECDSA signature for `msg` using this public key.
-    pub fn verify<C: Verification>(
-        &self,
-        secp: &Secp256k1<C>,
-        msg: impl Into<Message>,
-        sig: &ecdsa::Signature,
-    ) -> Result<(), Error> {
-        secp.verify_ecdsa(msg, sig, self)
-    }
 }
 
 /// This trait enables interaction with the FFI layer and even though it is part of the public API
@@ -1019,21 +998,6 @@ impl Keypair {
     #[inline]
     pub fn x_only_public_key(&self) -> (XOnlyPublicKey, Parity) {
         XOnlyPublicKey::from_keypair(self)
-    }
-
-    /// Constructs a schnorr signature for `msg` using the global [`SECP256K1`] context.
-    #[inline]
-    #[cfg(all(feature = "global-context", feature = "rand", feature = "std"))]
-    pub fn sign_schnorr(&self, msg: &[u8]) -> schnorr::Signature {
-        SECP256K1.sign_schnorr(msg, self)
-    }
-
-    /// Constructs a schnorr signature without aux rand for `msg` using the global
-    /// [`SECP256K1`] context.
-    #[inline]
-    #[cfg(all(feature = "global-context", feature = "std"))]
-    pub fn sign_schnorr_no_aux_rand(&self, msg: &[u8]) -> schnorr::Signature {
-        SECP256K1.sign_schnorr_no_aux_rand(msg, self)
     }
 
     /// Attempts to erase the secret within the underlying array.
@@ -1406,15 +1370,6 @@ impl XOnlyPublicKey {
         PublicKey::from_x_only_public_key(*self, parity)
     }
 
-    /// Checks that `sig` is a valid schnorr signature for `msg` using this public key.
-    pub fn verify<C: Verification>(
-        &self,
-        secp: &Secp256k1<C>,
-        msg: &[u8],
-        sig: &schnorr::Signature,
-    ) -> Result<(), Error> {
-        secp.verify_schnorr(sig, msg, self)
-    }
 }
 
 /// Represents the parity passed between FFI function calls.

@@ -64,7 +64,7 @@ macro_rules! impl_non_secure_erase {
             /// of the [`zeroize`](https://docs.rs/zeroize) crate.
             #[inline]
             pub fn non_secure_erase(&mut self) {
-                secp256k1_sys::non_secure_erase_impl(&mut self.$target, $value);
+                secp256k1_zkp_sys::non_secure_erase_impl(&mut self.$target, $value);
             }
         }
     };
