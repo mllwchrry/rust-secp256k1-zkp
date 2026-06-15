@@ -161,6 +161,7 @@ mod macros;
 mod secret;
 mod context;
 mod key;
+mod from_secp256k1;
 
 pub mod constants;
 pub mod scalar;
