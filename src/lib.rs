@@ -139,8 +139,11 @@
 
 // Coding conventions
 #![deny(non_upper_case_globals, non_camel_case_types, non_snake_case)]
-#![warn(missing_docs, missing_copy_implementations, missing_debug_implementations)]
-#![cfg_attr(all(not(test), not(feature = "std")), no_std)]
+#![warn(
+    missing_docs,
+    missing_copy_implementations,
+    missing_debug_implementations
+)]
 // Experimental features we need.
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![cfg_attr(bench, feature(test))]
@@ -153,7 +156,7 @@ extern crate core;
 extern crate test;
 
 #[cfg(feature = "hashes")]
-pub extern crate hashes;
+pub extern crate actual_hashes as hashes;
 
 #[macro_use]
 mod macros;
@@ -168,6 +171,8 @@ pub mod ecdsa;
 pub mod ellswift;
 pub mod scalar;
 pub mod schnorr;
+mod zkp;
+pub use crate::zkp::*;
 #[cfg(feature = "serde")]
 mod serde_util;
 
@@ -178,11 +183,11 @@ use core::{fmt, mem, str};
 #[cfg(all(feature = "global-context", feature = "std"))]
 pub use context::global::{self, SECP256K1};
 #[cfg(feature = "rand")]
-pub use rand;
+pub extern crate actual_rand as rand;
 pub extern crate secp256k1_zkp_sys;
 pub use secp256k1_zkp_sys as ffi;
 #[cfg(feature = "serde")]
-pub use serde;
+pub extern crate actual_serde as serde;
 
 #[cfg(feature = "alloc")]
 pub use crate::context::{All, SignOnly, VerifyOnly};
@@ -238,7 +243,9 @@ impl Message {
     ///
     /// [secure signature]: https://twitter.com/pwuille/status/1063582706288586752
     #[inline]
-    pub fn from_digest(digest: [u8; 32]) -> Message { Message(digest) }
+    pub fn from_digest(digest: [u8; 32]) -> Message {
+        Message(digest)
+    }
 
     /// Creates a [`Message`] from a 32 byte slice `digest`.
     ///
@@ -258,14 +265,18 @@ impl Message {
     #[inline]
     #[deprecated(since = "0.30.0", note = "use from_digest instead")]
     pub fn from_digest_slice(digest: &[u8]) -> Result<Message, Error> {
-        Ok(Message::from_digest(digest.try_into().map_err(|_| Error::InvalidMessage)?))
+        Ok(Message::from_digest(
+            digest.try_into().map_err(|_| Error::InvalidMessage)?,
+        ))
     }
 }
 
 #[allow(deprecated)]
 impl<T: ThirtyTwoByteHash> From<T> for Message {
     /// Converts a 32-byte hash directly to a message without error paths.
-    fn from(t: T) -> Message { Message(t.into_32()) }
+    fn from(t: T) -> Message {
+        Message(t.into_32())
+    }
 }
 
 impl fmt::LowerHex for Message {
@@ -278,7 +289,9 @@ impl fmt::LowerHex for Message {
 }
 
 impl fmt::Display for Message {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { fmt::LowerHex::fmt(self, f) }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::LowerHex::fmt(self, f)
+    }
 }
 
 /// The main error type for this library.
@@ -308,6 +321,38 @@ pub enum Error {
     InvalidParityValue(key::InvalidParityValue),
     /// Bad EllSwift value
     InvalidEllSwift,
+    /// Failed to produce a surjection proof because of an internal error within `libsecp256k1-zkp`
+    CannotProveSurjection,
+    /// Given bytes don't represent a valid surjection proof
+    InvalidSurjectionProof,
+    /// Given bytes don't represent a valid pedersen commitment
+    InvalidPedersenCommitment,
+    /// Failed to produce a range proof because of an internal error within `libsecp256k1-zkp`
+    CannotMakeRangeProof,
+    /// Given range proof does not prove that the commitment is within a range
+    InvalidRangeProof,
+    /// Bad generator
+    InvalidGenerator,
+    /// Tweak must of len 32
+    InvalidTweakLength,
+    /// Tweak must be less than secp curve order
+    TweakOutOfBounds,
+    /// Given bytes don't represent a valid adaptor signature
+    InvalidEcdsaAdaptorSignature,
+    /// Failed to decrypt an adaptor signature because of an internal error within `libsecp256k1-zkp`
+    CannotDecryptAdaptorSignature,
+    /// Failed to recover an adaptor secret from an adaptor signature because of an internal error within `libsecp256k1-zkp`
+    CannotRecoverAdaptorSecret,
+    /// Given adaptor signature is not valid for the provided combination of public key, encryption key and message
+    CannotVerifyAdaptorSignature,
+    /// Given bytes don't represent a valid whitelist signature
+    InvalidWhitelistSignature,
+    /// Invalid PAK list
+    InvalidPakList,
+    /// Couldn't create whitelist signature with the given data.
+    CannotCreateWhitelistSignature,
+    /// The given whitelist signature doesn't correctly prove inclusion in the whitelist.
+    InvalidWhitelistProof,
 }
 
 impl fmt::Display for Error {
@@ -329,6 +374,26 @@ impl fmt::Display for Error {
             ),
             InvalidParityValue(e) => write_err!(f, "couldn't create parity"; e),
             InvalidEllSwift => f.write_str("malformed EllSwift value"),
+            CannotProveSurjection => f.write_str("failed to prove surjection"),
+            InvalidSurjectionProof => f.write_str("malformed surjection proof"),
+            InvalidPedersenCommitment => f.write_str("malformed pedersen commitment"),
+            CannotMakeRangeProof => f.write_str("failed to generate range proof"),
+            InvalidRangeProof => f.write_str("failed to verify range proof"),
+            InvalidGenerator => f.write_str("malformed generator"),
+            InvalidEcdsaAdaptorSignature => f.write_str("malformed ecdsa adaptor signature"),
+            CannotDecryptAdaptorSignature => f.write_str("failed to decrypt adaptor signature"),
+            CannotRecoverAdaptorSecret => f.write_str("failed to recover adaptor secret"),
+            CannotVerifyAdaptorSignature => f.write_str("failed to verify adaptor signature"),
+            InvalidTweakLength => f.write_str("Tweak must of size 32"),
+            TweakOutOfBounds => f.write_str("Tweak must be less than secp curve order"),
+            InvalidWhitelistSignature => f.write_str("malformed whitelist signature"),
+            InvalidPakList => f.write_str("invalid PAK list"),
+            CannotCreateWhitelistSignature => {
+                f.write_str("cannot create whitelist signature with the given data")
+            }
+            InvalidWhitelistProof => f.write_str(
+                "given whitelist signature doesn't correctly prove inclusion in the whitelist",
+            ),
         }
     }
 }
@@ -349,6 +414,22 @@ impl std::error::Error for Error {
             Error::InvalidPublicKeySum => None,
             Error::InvalidParityValue(error) => Some(error),
             Error::InvalidEllSwift => None,
+            Error::CannotProveSurjection => None,
+            Error::InvalidSurjectionProof => None,
+            Error::InvalidPedersenCommitment => None,
+            Error::CannotMakeRangeProof => None,
+            Error::InvalidRangeProof => None,
+            Error::InvalidGenerator => None,
+            Error::InvalidTweakLength => None,
+            Error::TweakOutOfBounds => None,
+            Error::InvalidEcdsaAdaptorSignature => None,
+            Error::CannotDecryptAdaptorSignature => None,
+            Error::CannotRecoverAdaptorSecret => None,
+            Error::CannotVerifyAdaptorSignature => None,
+            Error::InvalidWhitelistSignature => None,
+            Error::InvalidPakList => None,
+            Error::CannotCreateWhitelistSignature => None,
+            Error::InvalidWhitelistProof => None,
         }
     }
 }
@@ -365,7 +446,9 @@ unsafe impl<C: Context> Send for Secp256k1<C> {}
 unsafe impl<C: Context> Sync for Secp256k1<C> {}
 
 impl<C: Context> PartialEq for Secp256k1<C> {
-    fn eq(&self, _other: &Secp256k1<C>) -> bool { true }
+    fn eq(&self, _other: &Secp256k1<C>) -> bool {
+        true
+    }
 }
 
 impl<C: Context> Eq for Secp256k1<C> {}
@@ -392,7 +475,9 @@ impl<C: Context> Secp256k1<C> {
     /// shouldn't be needed with normal usage of the library. It enables
     /// extending the Secp256k1 with more cryptographic algorithms outside of
     /// this crate.
-    pub fn ctx(&self) -> NonNull<ffi::Context> { self.ctx }
+    pub fn ctx(&self) -> NonNull<ffi::Context> {
+        self.ctx
+    }
 
     /// Returns the required memory for a preallocated context buffer in a generic manner(sign/verify/all).
     pub fn preallocate_size_gen() -> usize {
@@ -793,7 +878,12 @@ mod tests {
         wild_keys[1][0] -= 1;
         wild_msgs[1][0] -= 1;
 
-        for key in wild_keys.iter().copied().map(SecretKey::from_byte_array).map(Result::unwrap) {
+        for key in wild_keys
+            .iter()
+            .copied()
+            .map(SecretKey::from_byte_array)
+            .map(Result::unwrap)
+        {
             for msg in wild_msgs.into_iter().map(Message::from_digest) {
                 let sig = s.sign_ecdsa(msg, &key);
                 let low_r_sig = s.sign_ecdsa_low_r(msg, &key);
@@ -821,7 +911,10 @@ mod tests {
 
         let msg = crate::random_32_bytes(&mut rand::rng());
         let msg = Message::from_digest(msg);
-        assert_eq!(s.verify_ecdsa(msg, &sig, &pk), Err(Error::IncorrectSignature));
+        assert_eq!(
+            s.verify_ecdsa(msg, &sig, &pk),
+            Err(Error::IncorrectSignature)
+        );
     }
 
     #[test]
@@ -914,7 +1007,10 @@ mod tests {
         let msg = Message::from_digest(msg);
 
         // without normalization we expect this will fail
-        assert_eq!(secp.verify_ecdsa(msg, &sig, &pk), Err(Error::IncorrectSignature));
+        assert_eq!(
+            secp.verify_ecdsa(msg, &sig, &pk),
+            Err(Error::IncorrectSignature)
+        );
         // after normalization it should pass
         sig.normalize_s();
         assert_eq!(secp.verify_ecdsa(msg, &sig, &pk), Ok(()));

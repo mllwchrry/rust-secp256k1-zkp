@@ -32,6 +32,7 @@ pub mod global {
     ///
     /// ```
     /// # #[cfg(all(feature = "global-context", feature = "rand", feature = "std"))] {
+    /// # use secp256k1_zkp::rand;
     /// use secp256k1_zkp::{PublicKey, SECP256K1};
     /// let _ = SECP256K1.generate_keypair(&mut rand::rng());
     /// # }
@@ -231,7 +232,9 @@ mod alloc_only {
         /// `rng`.
         /// If `rand` or `std` feature is not enabled please consider randomizing the context (see
         /// docs for `Secp256k1::gen_new()`).
-        pub fn new() -> Secp256k1<All> { Secp256k1::gen_new() }
+        pub fn new() -> Secp256k1<All> {
+            Secp256k1::gen_new()
+        }
     }
 
     impl Secp256k1<SignOnly> {
@@ -241,7 +244,9 @@ mod alloc_only {
         /// `rng`.
         /// If `rand` or `std` feature is not enabled please consider randomizing the context (see
         /// docs for `Secp256k1::gen_new()`).
-        pub fn signing_only() -> Secp256k1<SignOnly> { Secp256k1::gen_new() }
+        pub fn signing_only() -> Secp256k1<SignOnly> {
+            Secp256k1::gen_new()
+        }
     }
 
     impl Secp256k1<VerifyOnly> {
@@ -251,11 +256,15 @@ mod alloc_only {
         /// `rng`.
         /// If `rand` or `std` feature is not enabled please consider randomizing the context (see
         /// docs for `Secp256k1::gen_new()`).
-        pub fn verification_only() -> Secp256k1<VerifyOnly> { Secp256k1::gen_new() }
+        pub fn verification_only() -> Secp256k1<VerifyOnly> {
+            Secp256k1::gen_new()
+        }
     }
 
     impl Default for Secp256k1<All> {
-        fn default() -> Self { Self::new() }
+        fn default() -> Self {
+            Self::new()
+        }
     }
 
     impl<C: Context> Clone for Secp256k1<C> {
@@ -348,7 +357,9 @@ impl<'buf> Secp256k1<AllPreallocated<'buf>> {
         Secp256k1::preallocated_gen_new(buf)
     }
     /// Uses the ffi `secp256k1_context_preallocated_size` to check the memory size needed for a context.
-    pub fn preallocate_size() -> usize { Self::preallocate_size_gen() }
+    pub fn preallocate_size() -> usize {
+        Self::preallocate_size_gen()
+    }
 
     /// Creates a context from a raw context.
     ///
@@ -371,7 +382,10 @@ impl<'buf> Secp256k1<AllPreallocated<'buf>> {
     pub unsafe fn from_raw_all(
         raw_ctx: NonNull<ffi::Context>,
     ) -> ManuallyDrop<Secp256k1<AllPreallocated<'buf>>> {
-        ManuallyDrop::new(Secp256k1 { ctx: raw_ctx, phantom: PhantomData })
+        ManuallyDrop::new(Secp256k1 {
+            ctx: raw_ctx,
+            phantom: PhantomData,
+        })
     }
 }
 
@@ -385,7 +399,9 @@ impl<'buf> Secp256k1<SignOnlyPreallocated<'buf>> {
 
     /// Uses the ffi `secp256k1_context_preallocated_size` to check the memory size needed for the context.
     #[inline]
-    pub fn preallocate_signing_size() -> usize { Self::preallocate_size_gen() }
+    pub fn preallocate_signing_size() -> usize {
+        Self::preallocate_size_gen()
+    }
 
     /// Creates a context from a raw context that can only be used for signing.
     ///
@@ -395,7 +411,10 @@ impl<'buf> Secp256k1<SignOnlyPreallocated<'buf>> {
     pub unsafe fn from_raw_signing_only(
         raw_ctx: NonNull<ffi::Context>,
     ) -> ManuallyDrop<Secp256k1<SignOnlyPreallocated<'buf>>> {
-        ManuallyDrop::new(Secp256k1 { ctx: raw_ctx, phantom: PhantomData })
+        ManuallyDrop::new(Secp256k1 {
+            ctx: raw_ctx,
+            phantom: PhantomData,
+        })
     }
 }
 
@@ -409,7 +428,9 @@ impl<'buf> Secp256k1<VerifyOnlyPreallocated<'buf>> {
 
     /// Uses the ffi `secp256k1_context_preallocated_size` to check the memory size needed for the context.
     #[inline]
-    pub fn preallocate_verification_size() -> usize { Self::preallocate_size_gen() }
+    pub fn preallocate_verification_size() -> usize {
+        Self::preallocate_size_gen()
+    }
 
     /// Creates a context from a raw context that can only be used for verification.
     ///
@@ -419,6 +440,9 @@ impl<'buf> Secp256k1<VerifyOnlyPreallocated<'buf>> {
     pub unsafe fn from_raw_verification_only(
         raw_ctx: NonNull<ffi::Context>,
     ) -> ManuallyDrop<Secp256k1<VerifyOnlyPreallocated<'buf>>> {
-        ManuallyDrop::new(Secp256k1 { ctx: raw_ctx, phantom: PhantomData })
+        ManuallyDrop::new(Secp256k1 {
+            ctx: raw_ctx,
+            phantom: PhantomData,
+        })
     }
 }
