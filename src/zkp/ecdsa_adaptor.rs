@@ -10,7 +10,7 @@
 use crate::ffi::{self, CPtr, ECDSA_ADAPTOR_SIGNATURE_LENGTH};
 #[cfg(feature = "rand-std")]
 use crate::rand::thread_rng;
-#[cfg(feature = "actual-rand")]
+#[cfg(feature = "rand")]
 use crate::rand::{CryptoRng, Rng};
 use crate::{constants, PublicKey, Secp256k1, SecretKey};
 use crate::{ecdsa::Signature, Verification};
@@ -147,7 +147,7 @@ impl EcdsaAdaptorSignature {
     /// The nonce derivation process is strengthened against side channel
     /// attacks by providing auxiliary randomness using the provided random number generator.
     /// Requires compilation with "rand" feature.
-    #[cfg(feature = "actual-rand")]
+    #[cfg(feature = "rand")]
     pub fn encrypt_with_rng<C: Signing, R: Rng + CryptoRng>(
         secp: &Secp256k1<C>,
         msg: &Message,

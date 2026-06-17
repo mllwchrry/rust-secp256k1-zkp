@@ -37,6 +37,8 @@ fn main() {
         .define("ENABLE_MODULE_SURJECTIONPROOF", Some("1"))
         .define("ENABLE_MODULE_GENERATOR", Some("1"))
         .define("ENABLE_MODULE_RANGEPROOF", Some("1"))
+        .define("ENABLE_MODULE_EXTRAKEYS", Some("1"))
+        .define("ENABLE_MODULE_SCHNORRSIG", Some("1"))
         .define("ENABLE_MODULE_ECDSA_ADAPTOR", Some("1"))
         .define("ENABLE_MODULE_WHITELIST", Some("1"))
         .define("ECMULT_GEN_PREC_BITS", Some("4"))
