@@ -137,7 +137,8 @@ static void rustsecp256k1zkp_v0_11_0_ecmult_gen_context_build(rustsecp256k1zkp_v
 static void rustsecp256k1zkp_v0_11_0_ecmult_gen_context_clear(rustsecp256k1zkp_v0_11_0_ecmult_gen_context* ctx);
 
 /** Multiply with the generator: R = a*G */
-static void rustsecp256k1zkp_v0_11_0_ecmult_gen(const rustsecp256k1zkp_v0_11_0_ecmult_gen_context* ctx, rustsecp256k1zkp_v0_11_0_gej *r, const rustsecp256k1zkp_v0_11_0_scalar *a);
+static void rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(const rustsecp256k1zkp_v0_11_0_ecmult_gen_context* ctx, rustsecp256k1zkp_v0_11_0_gej *r, const rustsecp256k1zkp_v0_11_0_scalar *a);
+static void rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(const rustsecp256k1zkp_v0_11_0_ecmult_gen_context* ctx, rustsecp256k1zkp_v0_11_0_ge *r, const rustsecp256k1zkp_v0_11_0_scalar *a);
 
 static void rustsecp256k1zkp_v0_11_0_ecmult_gen_blind(rustsecp256k1zkp_v0_11_0_ecmult_gen_context *ctx, const rustsecp256k1zkp_v0_11_0_hash_ctx *hash_ctx, const unsigned char *seed32);
 

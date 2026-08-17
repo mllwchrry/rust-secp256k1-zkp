@@ -12,7 +12,7 @@
 
 SECP256K1_INLINE static int rustsecp256k1zkp_v0_11_0_surjection_genmessage(unsigned char *msg32, rustsecp256k1zkp_v0_11_0_ge *ephemeral_input_tags, size_t n_input_tags, rustsecp256k1zkp_v0_11_0_ge *ephemeral_output_tag);
 
-SECP256K1_INLINE static int rustsecp256k1zkp_v0_11_0_surjection_genrand(rustsecp256k1zkp_v0_11_0_scalar *s, size_t ns, const rustsecp256k1zkp_v0_11_0_scalar *blinding_key);
+SECP256K1_INLINE static int rustsecp256k1zkp_v0_11_0_surjection_genrand(const rustsecp256k1zkp_v0_11_0_hash_ctx *hash_ctx, rustsecp256k1zkp_v0_11_0_scalar *s, size_t ns, size_t n_inputs, const unsigned char *used_inputs, const unsigned char *msg32, size_t input_index, const unsigned char *input_blinding_key, const unsigned char *output_blinding_key);
 
 SECP256K1_INLINE static int rustsecp256k1zkp_v0_11_0_surjection_compute_public_keys(rustsecp256k1zkp_v0_11_0_gej *pubkeys, size_t n_pubkeys, const rustsecp256k1zkp_v0_11_0_ge *input_tags, size_t n_input_tags, const unsigned char *used_tags, const rustsecp256k1zkp_v0_11_0_ge *output_tag, size_t input_index, size_t *ring_input_index);
 

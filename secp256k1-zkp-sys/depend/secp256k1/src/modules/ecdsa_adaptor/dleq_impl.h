@@ -82,9 +82,12 @@ static void rustsecp256k1zkp_v0_11_0_dleq_challenge(const rustsecp256k1zkp_v0_11
 static void rustsecp256k1zkp_v0_11_0_dleq_pair(const rustsecp256k1zkp_v0_11_0_ecmult_gen_context *ecmult_gen_ctx, rustsecp256k1zkp_v0_11_0_ge *p, const rustsecp256k1zkp_v0_11_0_scalar *sk, const rustsecp256k1zkp_v0_11_0_ge *gen2) {
     rustsecp256k1zkp_v0_11_0_gej pj[2];
 
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(ecmult_gen_ctx, &pj[0], sk);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(ecmult_gen_ctx, &pj[0], sk);
     rustsecp256k1zkp_v0_11_0_ecmult_const(&pj[1], gen2, sk);
     rustsecp256k1zkp_v0_11_0_ge_set_all_gej(p, pj, 2);
+
+    rustsecp256k1zkp_v0_11_0_gej_clear(&pj[0]);
+    rustsecp256k1zkp_v0_11_0_gej_clear(&pj[1]);
 }
 
 /* Generates a proof that the discrete logarithm of P1 to the secp256k1 base G is the

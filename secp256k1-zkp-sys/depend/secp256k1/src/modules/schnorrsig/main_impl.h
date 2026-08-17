@@ -123,7 +123,6 @@ static int rustsecp256k1zkp_v0_11_0_schnorrsig_sign_internal(const rustsecp256k1
     rustsecp256k1zkp_v0_11_0_scalar sk;
     rustsecp256k1zkp_v0_11_0_scalar e;
     rustsecp256k1zkp_v0_11_0_scalar k;
-    rustsecp256k1zkp_v0_11_0_gej rj;
     rustsecp256k1zkp_v0_11_0_ge pk;
     rustsecp256k1zkp_v0_11_0_ge r;
     unsigned char nonce32[32] = { 0 };
@@ -160,8 +159,7 @@ static int rustsecp256k1zkp_v0_11_0_schnorrsig_sign_internal(const rustsecp256k1
     ret &= !rustsecp256k1zkp_v0_11_0_scalar_is_zero(&k);
     rustsecp256k1zkp_v0_11_0_scalar_cmov(&k, &rustsecp256k1zkp_v0_11_0_scalar_one, !ret);
 
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(&ctx->ecmult_gen_ctx, &rj, &k);
-    rustsecp256k1zkp_v0_11_0_ge_set_gej(&r, &rj);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(&ctx->ecmult_gen_ctx, &r, &k);
 
     /* We declassify r to allow using it as a branch point. This is fine
      * because r is not a secret. */
@@ -183,7 +181,6 @@ static int rustsecp256k1zkp_v0_11_0_schnorrsig_sign_internal(const rustsecp256k1
     rustsecp256k1zkp_v0_11_0_scalar_clear(&sk);
     rustsecp256k1zkp_v0_11_0_memclear_explicit(seckey, sizeof(seckey));
     rustsecp256k1zkp_v0_11_0_memclear_explicit(nonce32, sizeof(nonce32));
-    rustsecp256k1zkp_v0_11_0_gej_clear(&rj);
 
     return ret;
 }

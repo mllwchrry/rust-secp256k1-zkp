@@ -415,7 +415,7 @@ static int rustsecp256k1zkp_v0_11_0_musig_nonce_gen_internal(const rustsecp256k1
 
     /* Compute pubnonce as two gejs */
     for (i = 0; i < 2; i++) {
-        rustsecp256k1zkp_v0_11_0_ecmult_gen(&ctx->ecmult_gen_ctx, &nonce_ptj[i], &k[i]);
+        rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(&ctx->ecmult_gen_ctx, &nonce_ptj[i], &k[i]);
         rustsecp256k1zkp_v0_11_0_scalar_clear(&k[i]);
     }
 

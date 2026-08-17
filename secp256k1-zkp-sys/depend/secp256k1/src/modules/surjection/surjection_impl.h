@@ -34,31 +34,52 @@ SECP256K1_INLINE static void rustsecp256k1zkp_v0_11_0_surjection_genmessage(cons
     rustsecp256k1zkp_v0_11_0_sha256_clear(&sha256_en);
 }
 
-SECP256K1_INLINE static int rustsecp256k1zkp_v0_11_0_surjection_genrand(const rustsecp256k1zkp_v0_11_0_hash_ctx *hash_ctx, rustsecp256k1zkp_v0_11_0_scalar *s, size_t ns, const rustsecp256k1zkp_v0_11_0_scalar *blinding_key) {
+/* Derive the ring's s-values, one of which is used as the signing nonce, from a
+ * seed that hashes the passed-in arguments. See the call site for how these
+ * correspond to the proof inputs. */
+SECP256K1_INLINE static int rustsecp256k1zkp_v0_11_0_surjection_genrand(const rustsecp256k1zkp_v0_11_0_hash_ctx *hash_ctx, rustsecp256k1zkp_v0_11_0_scalar *s, size_t ns, size_t n_inputs, const unsigned char *used_inputs, const unsigned char *msg32, size_t input_index, const unsigned char *input_blinding_key, const unsigned char *output_blinding_key) {
     size_t i;
-    unsigned char sec_input[36];
+    size_t used_inputs_len;
+    unsigned char n_inputs_ser[4];
+    unsigned char index_ser[4];
+    unsigned char counter[4];
+    unsigned char seed[32];
+    unsigned char out[32];
     rustsecp256k1zkp_v0_11_0_sha256 sha256_en;
 
+    used_inputs_len = (n_inputs + 7) / 8;
+    rustsecp256k1zkp_v0_11_0_write_be32(n_inputs_ser, (uint32_t)n_inputs);
+    rustsecp256k1zkp_v0_11_0_write_be32(index_ser, (uint32_t)input_index);
+
+    /* Hash the arguments into the seed. */
+    rustsecp256k1zkp_v0_11_0_sha256_initialize(&sha256_en);
+    rustsecp256k1zkp_v0_11_0_sha256_write(hash_ctx, &sha256_en, n_inputs_ser, 4);
+    rustsecp256k1zkp_v0_11_0_sha256_write(hash_ctx, &sha256_en, used_inputs, used_inputs_len);
+    rustsecp256k1zkp_v0_11_0_sha256_write(hash_ctx, &sha256_en, msg32, 32);
+    rustsecp256k1zkp_v0_11_0_sha256_write(hash_ctx, &sha256_en, index_ser, 4);
+    rustsecp256k1zkp_v0_11_0_sha256_write(hash_ctx, &sha256_en, input_blinding_key, 32);
+    rustsecp256k1zkp_v0_11_0_sha256_write(hash_ctx, &sha256_en, output_blinding_key, 32);
+    rustsecp256k1zkp_v0_11_0_sha256_finalize(hash_ctx, &sha256_en, seed);
+    rustsecp256k1zkp_v0_11_0_sha256_clear(&sha256_en);
+
     /* compute s values */
-    rustsecp256k1zkp_v0_11_0_scalar_get_b32(&sec_input[4], blinding_key);
     for (i = 0; i < ns; i++) {
         int overflow = 0;
-        sec_input[0] = i;
-        sec_input[1] = i >> 8;
-        sec_input[2] = i >> 16;
-        sec_input[3] = i >> 24;
-
+        rustsecp256k1zkp_v0_11_0_write_be32(counter, (uint32_t)i);
         rustsecp256k1zkp_v0_11_0_sha256_initialize(&sha256_en);
-        rustsecp256k1zkp_v0_11_0_sha256_write(hash_ctx, &sha256_en, sec_input, 36);
-        rustsecp256k1zkp_v0_11_0_sha256_finalize(hash_ctx, &sha256_en, sec_input);
+        rustsecp256k1zkp_v0_11_0_sha256_write(hash_ctx, &sha256_en, counter, 4);
+        rustsecp256k1zkp_v0_11_0_sha256_write(hash_ctx, &sha256_en, seed, 32);
+        rustsecp256k1zkp_v0_11_0_sha256_finalize(hash_ctx, &sha256_en, out);
         rustsecp256k1zkp_v0_11_0_sha256_clear(&sha256_en);
-        rustsecp256k1zkp_v0_11_0_scalar_set_b32(&s[i], sec_input, &overflow);
+        rustsecp256k1zkp_v0_11_0_scalar_set_b32(&s[i], out, &overflow);
         if (overflow == 1) {
-            rustsecp256k1zkp_v0_11_0_memclear_explicit(sec_input, 32);
+            rustsecp256k1zkp_v0_11_0_memclear_explicit(out, sizeof(out));
+            rustsecp256k1zkp_v0_11_0_memclear_explicit(seed, sizeof(seed));
             return 0;
         }
     }
-    rustsecp256k1zkp_v0_11_0_memclear_explicit(sec_input, 32);
+    rustsecp256k1zkp_v0_11_0_memclear_explicit(out, sizeof(out));
+    rustsecp256k1zkp_v0_11_0_memclear_explicit(seed, sizeof(seed));
     return 1;
 }
 

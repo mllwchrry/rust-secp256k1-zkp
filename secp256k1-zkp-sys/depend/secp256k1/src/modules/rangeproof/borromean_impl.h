@@ -129,9 +129,8 @@ int rustsecp256k1zkp_v0_11_0_borromean_sign(const rustsecp256k1zkp_v0_11_0_hash_
     count = 0;
     for (i = 0; i < nrings; i++) {
         VERIFY_CHECK(INT_MAX - count > rsizes[i]);
-        rustsecp256k1zkp_v0_11_0_ecmult_gen(ecmult_gen_ctx, &rgej, &k[i]);
-        rustsecp256k1zkp_v0_11_0_ge_set_gej(&rge, &rgej);
-        if (rustsecp256k1zkp_v0_11_0_gej_is_infinity(&rgej)) {
+        rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(ecmult_gen_ctx, &rge, &k[i]);
+        if (rustsecp256k1zkp_v0_11_0_ge_is_infinity(&rge)) {
             return 0;
         }
         rustsecp256k1zkp_v0_11_0_eckey_pubkey_serialize33(&rge, tmp);

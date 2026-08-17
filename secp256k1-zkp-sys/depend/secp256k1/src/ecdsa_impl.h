@@ -273,14 +273,12 @@ static int rustsecp256k1zkp_v0_11_0_ecdsa_sig_verify(const rustsecp256k1zkp_v0_1
 
 static int rustsecp256k1zkp_v0_11_0_ecdsa_sig_sign(const rustsecp256k1zkp_v0_11_0_ecmult_gen_context *ctx, rustsecp256k1zkp_v0_11_0_scalar *sigr, rustsecp256k1zkp_v0_11_0_scalar *sigs, const rustsecp256k1zkp_v0_11_0_scalar *seckey, const rustsecp256k1zkp_v0_11_0_scalar *message, const rustsecp256k1zkp_v0_11_0_scalar *nonce, int *recid) {
     unsigned char b[32];
-    rustsecp256k1zkp_v0_11_0_gej rp;
     rustsecp256k1zkp_v0_11_0_ge r;
     rustsecp256k1zkp_v0_11_0_scalar n;
     int overflow = 0;
     int high;
 
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(ctx, &rp, nonce);
-    rustsecp256k1zkp_v0_11_0_ge_set_gej(&r, &rp);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(ctx, &r, nonce);
     rustsecp256k1zkp_v0_11_0_fe_normalize(&r.x);
     rustsecp256k1zkp_v0_11_0_fe_normalize(&r.y);
     rustsecp256k1zkp_v0_11_0_fe_get_b32(b, &r.x);
@@ -296,7 +294,6 @@ static int rustsecp256k1zkp_v0_11_0_ecdsa_sig_sign(const rustsecp256k1zkp_v0_11_
     rustsecp256k1zkp_v0_11_0_scalar_inverse(sigs, nonce);
     rustsecp256k1zkp_v0_11_0_scalar_mul(sigs, sigs, &n);
     rustsecp256k1zkp_v0_11_0_scalar_clear(&n);
-    rustsecp256k1zkp_v0_11_0_gej_clear(&rp);
     rustsecp256k1zkp_v0_11_0_ge_clear(&r);
     high = rustsecp256k1zkp_v0_11_0_scalar_is_high(sigs);
     rustsecp256k1zkp_v0_11_0_scalar_cond_negate(sigs, high);

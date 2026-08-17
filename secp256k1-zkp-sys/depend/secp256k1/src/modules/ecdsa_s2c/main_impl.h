@@ -146,7 +146,6 @@ int rustsecp256k1zkp_v0_11_0_ecdsa_anti_exfil_host_commit(const rustsecp256k1zkp
 int rustsecp256k1zkp_v0_11_0_ecdsa_anti_exfil_signer_commit(const rustsecp256k1zkp_v0_11_0_context* ctx, rustsecp256k1zkp_v0_11_0_ecdsa_s2c_opening* opening, const unsigned char* msg32, const unsigned char* seckey32, const unsigned char* rand_commitment32) {
     unsigned char nonce32[32];
     rustsecp256k1zkp_v0_11_0_scalar k;
-    rustsecp256k1zkp_v0_11_0_gej rj;
     rustsecp256k1zkp_v0_11_0_ge r;
     unsigned int count = 0;
     int is_nonce_valid = 0;
@@ -170,11 +169,9 @@ int rustsecp256k1zkp_v0_11_0_ecdsa_anti_exfil_signer_commit(const rustsecp256k1z
         count++;
     }
 
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(&ctx->ecmult_gen_ctx, &rj, &k);
-    rustsecp256k1zkp_v0_11_0_ge_set_gej(&r, &rj);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(&ctx->ecmult_gen_ctx, &r, &k);
     rustsecp256k1zkp_v0_11_0_ecdsa_s2c_opening_save(opening, &r);
     rustsecp256k1zkp_v0_11_0_memclear_explicit(nonce32, 32);
-    rustsecp256k1zkp_v0_11_0_scalar_clear(&k);
     return 1;
 }
 

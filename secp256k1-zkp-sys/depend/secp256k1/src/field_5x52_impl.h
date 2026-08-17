@@ -338,11 +338,11 @@ SECP256K1_INLINE static void rustsecp256k1zkp_v0_11_0_fe_impl_add(rustsecp256k1z
     r->n[4] += a->n[4];
 }
 
-SECP256K1_INLINE static void rustsecp256k1zkp_v0_11_0_fe_impl_mul(rustsecp256k1zkp_v0_11_0_fe *r, const rustsecp256k1zkp_v0_11_0_fe *a, const rustsecp256k1zkp_v0_11_0_fe * SECP256K1_RESTRICT b) {
+SECP256K1_FORCE_INLINE static void rustsecp256k1zkp_v0_11_0_fe_impl_mul(rustsecp256k1zkp_v0_11_0_fe *r, const rustsecp256k1zkp_v0_11_0_fe *a, const rustsecp256k1zkp_v0_11_0_fe * SECP256K1_RESTRICT b) {
     rustsecp256k1zkp_v0_11_0_fe_mul_inner(r->n, a->n, b->n);
 }
 
-SECP256K1_INLINE static void rustsecp256k1zkp_v0_11_0_fe_impl_sqr(rustsecp256k1zkp_v0_11_0_fe *r, const rustsecp256k1zkp_v0_11_0_fe *a) {
+SECP256K1_FORCE_INLINE static void rustsecp256k1zkp_v0_11_0_fe_impl_sqr(rustsecp256k1zkp_v0_11_0_fe *r, const rustsecp256k1zkp_v0_11_0_fe *a) {
     rustsecp256k1zkp_v0_11_0_fe_sqr_inner(r->n, a->n);
 }
 

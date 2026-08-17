@@ -217,7 +217,7 @@ static int rustsecp256k1zkp_v0_11_0_generator_generate_internal(const rustsecp25
         rustsecp256k1zkp_v0_11_0_scalar blind;
         rustsecp256k1zkp_v0_11_0_scalar_set_b32(&blind, blind32, &overflow);
         ret = !overflow;
-        rustsecp256k1zkp_v0_11_0_ecmult_gen(&ctx->ecmult_gen_ctx, &accum, &blind);
+        rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(&ctx->ecmult_gen_ctx, &accum, &blind);
     }
 
     rustsecp256k1zkp_v0_11_0_sha256_initialize(&sha256);
@@ -243,6 +243,8 @@ static int rustsecp256k1zkp_v0_11_0_generator_generate_internal(const rustsecp25
     rustsecp256k1zkp_v0_11_0_gej_add_ge(&accum, &accum, &add);
 
     rustsecp256k1zkp_v0_11_0_ge_set_gej(&add, &accum);
+    rustsecp256k1zkp_v0_11_0_gej_clear(&accum);
+
     rustsecp256k1zkp_v0_11_0_generator_save(gen, &add);
     return ret;
 }

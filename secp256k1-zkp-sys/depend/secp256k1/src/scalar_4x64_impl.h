@@ -51,7 +51,8 @@ SECP256K1_INLINE static void rustsecp256k1zkp_v0_11_0_scalar_set_u64(rustsecp256
 SECP256K1_INLINE static uint32_t rustsecp256k1zkp_v0_11_0_scalar_get_bits_limb32(const rustsecp256k1zkp_v0_11_0_scalar *a, unsigned int offset, unsigned int count) {
     SECP256K1_SCALAR_VERIFY(a);
     VERIFY_CHECK(count > 0 && count <= 32);
-    VERIFY_CHECK((offset + count - 1) >> 6 == offset >> 6);
+    VERIFY_CHECK(offset <= 256 - count);
+    VERIFY_CHECK((offset + count - 1) >> 5 == offset >> 5);
 
     return (a->d[offset >> 6] >> (offset & 0x3F)) & (0xFFFFFFFF >> (32 - count));
 }
@@ -59,12 +60,13 @@ SECP256K1_INLINE static uint32_t rustsecp256k1zkp_v0_11_0_scalar_get_bits_limb32
 SECP256K1_INLINE static uint32_t rustsecp256k1zkp_v0_11_0_scalar_get_bits_var(const rustsecp256k1zkp_v0_11_0_scalar *a, unsigned int offset, unsigned int count) {
     SECP256K1_SCALAR_VERIFY(a);
     VERIFY_CHECK(count > 0 && count <= 32);
-    VERIFY_CHECK(offset + count <= 256);
+    VERIFY_CHECK(offset <= 256 - count);
 
     if ((offset + count - 1) >> 6 == offset >> 6) {
-        return rustsecp256k1zkp_v0_11_0_scalar_get_bits_limb32(a, offset, count);
+        return (a->d[offset >> 6] >> (offset & 0x3F)) & (0xFFFFFFFF >> (32 - count));
     } else {
         VERIFY_CHECK((offset >> 6) + 1 < 4);
+        VERIFY_CHECK((offset & 0x3F) > 0);
         return ((a->d[offset >> 6] >> (offset & 0x3F)) | (a->d[(offset >> 6) + 1] << (64 - (offset & 0x3F)))) & (0xFFFFFFFF >> (32 - count));
     }
 }

@@ -564,12 +564,10 @@ static int rustsecp256k1zkp_v0_11_0_ecdsa_sign_inner(const rustsecp256k1zkp_v0_1
         rustsecp256k1zkp_v0_11_0_declassify(ctx, &is_nonce_valid, sizeof(is_nonce_valid));
         if (is_nonce_valid) {
             if (s2c_data32 != NULL) {
-                rustsecp256k1zkp_v0_11_0_gej nonce_pj;
                 rustsecp256k1zkp_v0_11_0_ge nonce_p;
 
                 /* Compute original nonce commitment/pubkey */
-                rustsecp256k1zkp_v0_11_0_ecmult_gen(&ctx->ecmult_gen_ctx, &nonce_pj, &non);
-                rustsecp256k1zkp_v0_11_0_ge_set_gej(&nonce_p, &nonce_pj);
+                rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(&ctx->ecmult_gen_ctx, &nonce_p, &non);
                 if (s2c_opening != NULL) {
                     rustsecp256k1zkp_v0_11_0_ecdsa_s2c_opening_save(s2c_opening, &nonce_p);
                 }
@@ -639,15 +637,12 @@ int rustsecp256k1zkp_v0_11_0_ec_seckey_verify(const rustsecp256k1zkp_v0_11_0_con
 }
 
 static int rustsecp256k1zkp_v0_11_0_ec_pubkey_create_helper(const rustsecp256k1zkp_v0_11_0_ecmult_gen_context *ecmult_gen_ctx, rustsecp256k1zkp_v0_11_0_scalar *seckey_scalar, rustsecp256k1zkp_v0_11_0_ge *p, const unsigned char *seckey) {
-    rustsecp256k1zkp_v0_11_0_gej pj;
     int ret;
 
     ret = rustsecp256k1zkp_v0_11_0_scalar_set_b32_seckey(seckey_scalar, seckey);
     rustsecp256k1zkp_v0_11_0_scalar_cmov(seckey_scalar, &rustsecp256k1zkp_v0_11_0_scalar_one, !ret);
 
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(ecmult_gen_ctx, &pj, seckey_scalar);
-    rustsecp256k1zkp_v0_11_0_ge_set_gej(p, &pj);
-    rustsecp256k1zkp_v0_11_0_gej_clear(&pj);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(ecmult_gen_ctx, p, seckey_scalar);
     return ret;
 }
 

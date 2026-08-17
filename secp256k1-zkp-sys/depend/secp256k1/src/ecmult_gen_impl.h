@@ -51,7 +51,7 @@ static void rustsecp256k1zkp_v0_11_0_ecmult_gen_scalar_diff(rustsecp256k1zkp_v0_
     rustsecp256k1zkp_v0_11_0_scalar_add(diff, diff, &neghalf);
 }
 
-static void rustsecp256k1zkp_v0_11_0_ecmult_gen(const rustsecp256k1zkp_v0_11_0_ecmult_gen_context *ctx, rustsecp256k1zkp_v0_11_0_gej *r, const rustsecp256k1zkp_v0_11_0_scalar *gn) {
+static void rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(const rustsecp256k1zkp_v0_11_0_ecmult_gen_context *ctx, rustsecp256k1zkp_v0_11_0_gej *r, const rustsecp256k1zkp_v0_11_0_scalar *gn) {
     uint32_t comb_off;
     rustsecp256k1zkp_v0_11_0_ge add;
     rustsecp256k1zkp_v0_11_0_fe neg;
@@ -281,11 +281,19 @@ static void rustsecp256k1zkp_v0_11_0_ecmult_gen(const rustsecp256k1zkp_v0_11_0_e
     rustsecp256k1zkp_v0_11_0_memclear_explicit(&recoded, sizeof(recoded));
 }
 
+SECP256K1_INLINE static void rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(const rustsecp256k1zkp_v0_11_0_ecmult_gen_context *ctx, rustsecp256k1zkp_v0_11_0_ge *r, const rustsecp256k1zkp_v0_11_0_scalar *a) {
+    rustsecp256k1zkp_v0_11_0_gej rj;
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(ctx, &rj, a);
+    rustsecp256k1zkp_v0_11_0_ge_set_gej(r, &rj);
+    /* Jacobian coordinates resulting from our multiplication algorithm could potentially leak
+     * information about the secret input scalar, so clear the memory out to be on the safe side. */
+    rustsecp256k1zkp_v0_11_0_gej_clear(&rj);
+}
+
 /* Setup blinding values for rustsecp256k1zkp_v0_11_0_ecmult_gen. */
 static void rustsecp256k1zkp_v0_11_0_ecmult_gen_blind(rustsecp256k1zkp_v0_11_0_ecmult_gen_context *ctx, const rustsecp256k1zkp_v0_11_0_hash_ctx *hash_ctx, const unsigned char *seed32) {
     rustsecp256k1zkp_v0_11_0_scalar b;
     rustsecp256k1zkp_v0_11_0_scalar diff;
-    rustsecp256k1zkp_v0_11_0_gej gb;
     rustsecp256k1zkp_v0_11_0_fe f;
     unsigned char nonce32[32];
     rustsecp256k1zkp_v0_11_0_rfc6979_hmac_sha256 rng;
@@ -325,15 +333,13 @@ static void rustsecp256k1zkp_v0_11_0_ecmult_gen_blind(rustsecp256k1zkp_v0_11_0_e
      * which rustsecp256k1zkp_v0_11_0_gej_add_ge cannot handle. */
     rustsecp256k1zkp_v0_11_0_scalar_cmov(&b, &rustsecp256k1zkp_v0_11_0_scalar_one, rustsecp256k1zkp_v0_11_0_scalar_is_zero(&b));
     rustsecp256k1zkp_v0_11_0_rfc6979_hmac_sha256_finalize(&rng);
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(ctx, &gb, &b);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(ctx, &ctx->ge_offset, &b);
     rustsecp256k1zkp_v0_11_0_scalar_negate(&b, &b);
     rustsecp256k1zkp_v0_11_0_scalar_add(&ctx->scalar_offset, &b, &diff);
-    rustsecp256k1zkp_v0_11_0_ge_set_gej(&ctx->ge_offset, &gb);
 
     /* Clean up. */
     rustsecp256k1zkp_v0_11_0_memclear_explicit(nonce32, sizeof(nonce32));
     rustsecp256k1zkp_v0_11_0_scalar_clear(&b);
-    rustsecp256k1zkp_v0_11_0_gej_clear(&gb);
     rustsecp256k1zkp_v0_11_0_fe_clear(&f);
     rustsecp256k1zkp_v0_11_0_rfc6979_hmac_sha256_clear(&rng);
 }

@@ -37,6 +37,11 @@
 #include "int128_impl.h"
 #endif
 
+#if defined(__GNUC__)
+# pragma GCC diagnostic push
+# pragma GCC diagnostic warning "-Wunused-function"
+#endif
+
 #define CONDITIONAL_TEST(cnt, nam) if (COUNT < (cnt)) { printf("Skipping %s (iteration count too low)\n", nam); } else
 
 static rustsecp256k1zkp_v0_11_0_context *CTX = NULL;
@@ -287,7 +292,6 @@ static void run_proper_context_tests(int use_prealloc) {
     void *my_ctx_prealloc = NULL;
     unsigned char seed[32] = {0x17};
 
-    rustsecp256k1zkp_v0_11_0_gej pubj;
     rustsecp256k1zkp_v0_11_0_ge pub;
     rustsecp256k1zkp_v0_11_0_scalar msg, key, nonce;
     rustsecp256k1zkp_v0_11_0_scalar sigr, sigs;
@@ -375,8 +379,7 @@ static void run_proper_context_tests(int use_prealloc) {
     /*** attempt to use them ***/
     testutil_random_scalar_order_test(&msg);
     testutil_random_scalar_order_test(&key);
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(&my_ctx->ecmult_gen_ctx, &pubj, &key);
-    rustsecp256k1zkp_v0_11_0_ge_set_gej(&pub, &pubj);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(&my_ctx->ecmult_gen_ctx, &pub, &key);
 
     /* obtain a working nonce */
     do {
@@ -415,7 +418,6 @@ static void run_scratch_tests(void) {
     size_t checkpoint;
     size_t checkpoint_2;
     rustsecp256k1zkp_v0_11_0_scratch_space *scratch;
-    rustsecp256k1zkp_v0_11_0_scratch_space local_scratch;
 
     /* Test public API */
     scratch = rustsecp256k1zkp_v0_11_0_scratch_space_create(CTX, 1000);
@@ -455,16 +457,7 @@ static void run_scratch_tests(void) {
     CHECK_ERROR_VOID(CTX, rustsecp256k1zkp_v0_11_0_scratch_apply_checkpoint(&CTX->error_callback, scratch, checkpoint_2)); /* checkpoint_2 is after checkpoint */
     CHECK_ERROR_VOID(CTX, rustsecp256k1zkp_v0_11_0_scratch_apply_checkpoint(&CTX->error_callback, scratch, (size_t) -1)); /* this is just wildly invalid */
 
-    /* try to use badly initialized scratch space */
-    rustsecp256k1zkp_v0_11_0_scratch_space_destroy(CTX, scratch);
-    memset(&local_scratch, 0, sizeof(local_scratch));
-    scratch = &local_scratch;
-    CHECK_ERROR(CTX, rustsecp256k1zkp_v0_11_0_scratch_max_allocation(&CTX->error_callback, scratch, 0));
-    CHECK_ERROR(CTX, rustsecp256k1zkp_v0_11_0_scratch_alloc(&CTX->error_callback, scratch, 500));
-    CHECK_ERROR_VOID(CTX, rustsecp256k1zkp_v0_11_0_scratch_space_destroy(CTX, scratch));
-
     /* Test that large integers do not wrap around in a bad way */
-    scratch = rustsecp256k1zkp_v0_11_0_scratch_space_create(CTX, 1000);
     /* Try max allocation with a large number of objects. Only makes sense if
      * ALIGNMENT is greater than 1 because otherwise the objects take no extra
      * space. */
@@ -477,6 +470,21 @@ static void run_scratch_tests(void) {
 
     /* cleanup */
     rustsecp256k1zkp_v0_11_0_scratch_space_destroy(CTX, NULL); /* no-op */
+}
+
+/* try to use badly initialized scratch space */
+static void run_invalid_scratch_space_tests(void) {
+    rustsecp256k1zkp_v0_11_0_scratch_space* scratch = checked_malloc(&CTX->error_callback, sizeof(*scratch));
+    size_t magic_size = sizeof(scratch->magic);
+    memset(scratch, 0, sizeof(*scratch));
+    /* catch accesses beyond the magic */
+    SECP256K1_CHECKMEM_UNDEFINE((unsigned char*)scratch + magic_size, sizeof(*scratch) - magic_size);
+
+    CHECK_ERROR(CTX, rustsecp256k1zkp_v0_11_0_scratch_max_allocation(&CTX->error_callback, scratch, 0));
+    CHECK_ERROR(CTX, rustsecp256k1zkp_v0_11_0_scratch_alloc(&CTX->error_callback, scratch, 500));
+    CHECK_ERROR_VOID(CTX, rustsecp256k1zkp_v0_11_0_scratch_space_destroy(CTX, scratch));
+
+    free(scratch);
 }
 
 /* A compression function that does nothing */
@@ -3112,6 +3120,18 @@ static int fe_equal(const rustsecp256k1zkp_v0_11_0_fe *a, const rustsecp256k1zkp
     return rustsecp256k1zkp_v0_11_0_fe_equal(&an, &bn);
 }
 
+static void run_fe_equal_magnitude_boundaries(void) {
+    int i;
+    rustsecp256k1zkp_v0_11_0_fe a, b;
+    for (i = 0; i < 100 * COUNT; ++i) {
+        testutil_random_fe(&a);
+        b = a;
+        testutil_random_fe_magnitude(&a, 1);
+        testutil_random_fe_magnitude(&b, 30);
+        CHECK(rustsecp256k1zkp_v0_11_0_fe_equal(&a, &b));
+    }
+}
+
 static void run_field_convert(void) {
     static const unsigned char b32[32] = {
         0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
@@ -4360,19 +4380,16 @@ static void test_ec_combine(void) {
     const rustsecp256k1zkp_v0_11_0_pubkey* d[6];
     rustsecp256k1zkp_v0_11_0_pubkey sd;
     rustsecp256k1zkp_v0_11_0_pubkey sd2;
-    rustsecp256k1zkp_v0_11_0_gej Qj;
     rustsecp256k1zkp_v0_11_0_ge Q;
     int i;
     for (i = 1; i <= 6; i++) {
         rustsecp256k1zkp_v0_11_0_scalar s;
         testutil_random_scalar_order_test(&s);
         rustsecp256k1zkp_v0_11_0_scalar_add(&sum, &sum, &s);
-        rustsecp256k1zkp_v0_11_0_ecmult_gen(&CTX->ecmult_gen_ctx, &Qj, &s);
-        rustsecp256k1zkp_v0_11_0_ge_set_gej(&Q, &Qj);
+        rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(&CTX->ecmult_gen_ctx, &Q, &s);
         rustsecp256k1zkp_v0_11_0_pubkey_save(&data[i - 1], &Q);
         d[i - 1] = &data[i - 1];
-        rustsecp256k1zkp_v0_11_0_ecmult_gen(&CTX->ecmult_gen_ctx, &Qj, &sum);
-        rustsecp256k1zkp_v0_11_0_ge_set_gej(&Q, &Qj);
+        rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(&CTX->ecmult_gen_ctx, &Q, &sum);
         rustsecp256k1zkp_v0_11_0_pubkey_save(&sd, &Q);
         CHECK(rustsecp256k1zkp_v0_11_0_ec_pubkey_combine(CTX, &sd2, d, i) == 1);
         CHECK(rustsecp256k1zkp_v0_11_0_memcmp_var(&sd, &sd2, sizeof(sd)) == 0);
@@ -4397,8 +4414,7 @@ static void test_ec_commit(void) {
 
     /* Create random keypair and data */
     testutil_random_scalar_order_test(&seckey_s);
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(&CTX->ecmult_gen_ctx, &pubkeyj, &seckey_s);
-    rustsecp256k1zkp_v0_11_0_ge_set_gej(&pubkey, &pubkeyj);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(&CTX->ecmult_gen_ctx, &pubkey, &seckey_s);
     testrand256_test(data);
 
     /* Commit to data and verify */
@@ -4408,7 +4424,7 @@ static void test_ec_commit(void) {
     CHECK(rustsecp256k1zkp_v0_11_0_ec_commit_verify(hash_ctx, &commitment, &pubkey, &sha, data, 32) == 1);
     rustsecp256k1zkp_v0_11_0_sha256_initialize(&sha);
     CHECK(rustsecp256k1zkp_v0_11_0_ec_commit_seckey(hash_ctx, &seckey_s, &pubkey, &sha, data, 32) == 1);
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(&CTX->ecmult_gen_ctx, &pubkeyj, &seckey_s);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &pubkeyj, &seckey_s);
     rustsecp256k1zkp_v0_11_0_gej_eq_ge_var(&pubkeyj, &commitment);
 
     /* Check that verification fails with different data */
@@ -4430,7 +4446,6 @@ static void test_ec_commit_api(void) {
     unsigned char seckey[32];
     rustsecp256k1zkp_v0_11_0_scalar seckey_s;
     rustsecp256k1zkp_v0_11_0_ge pubkey;
-    rustsecp256k1zkp_v0_11_0_gej pubkeyj;
     rustsecp256k1zkp_v0_11_0_ge commitment;
     unsigned char data[32];
     rustsecp256k1zkp_v0_11_0_sha256 sha;
@@ -4440,8 +4455,7 @@ static void test_ec_commit_api(void) {
     /* Create random keypair */
     testutil_random_scalar_order_test(&seckey_s);
     rustsecp256k1zkp_v0_11_0_scalar_get_b32(seckey, &seckey_s);
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(&CTX->ecmult_gen_ctx, &pubkeyj, &seckey_s);
-    rustsecp256k1zkp_v0_11_0_ge_set_gej(&pubkey, &pubkeyj);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(&CTX->ecmult_gen_ctx, &pubkey, &seckey_s);
 
     rustsecp256k1zkp_v0_11_0_sha256_initialize(&sha);
     CHECK(rustsecp256k1zkp_v0_11_0_ec_commit(hash_ctx, &commitment, &pubkey, &sha, data, 1) == 1);
@@ -4757,9 +4771,9 @@ static void test_ecmult_target(const rustsecp256k1zkp_v0_11_0_scalar* target, in
 
     /* EC multiplications */
     if (mode == 0) {
-        rustsecp256k1zkp_v0_11_0_ecmult_gen(&CTX->ecmult_gen_ctx, &p1j, &n1);
-        rustsecp256k1zkp_v0_11_0_ecmult_gen(&CTX->ecmult_gen_ctx, &p2j, &n2);
-        rustsecp256k1zkp_v0_11_0_ecmult_gen(&CTX->ecmult_gen_ctx, &ptj, target);
+        rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &p1j, &n1);
+        rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &p2j, &n2);
+        rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &ptj, target);
     } else if (mode == 1) {
         rustsecp256k1zkp_v0_11_0_ecmult(&p1j, &pj, &n1, &rustsecp256k1zkp_v0_11_0_scalar_zero);
         rustsecp256k1zkp_v0_11_0_ecmult(&p2j, &pj, &n2, &rustsecp256k1zkp_v0_11_0_scalar_zero);
@@ -5326,7 +5340,7 @@ static int test_ecmult_multi_random(rustsecp256k1zkp_v0_11_0_scratch *scratch) {
             rustsecp256k1zkp_v0_11_0_scalar_mul(&scalars[filled], &sc_tmp, &g_scalar);
             rustsecp256k1zkp_v0_11_0_scalar_inverse_var(&sc_tmp, &sc_tmp);
             rustsecp256k1zkp_v0_11_0_scalar_negate(&sc_tmp, &sc_tmp);
-            rustsecp256k1zkp_v0_11_0_ecmult_gen(&CTX->ecmult_gen_ctx, &gejs[filled], &sc_tmp);
+            rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &gejs[filled], &sc_tmp);
             ++filled;
             ++mults;
         }
@@ -5806,7 +5820,7 @@ static void test_ecmult_accumulate(rustsecp256k1zkp_v0_11_0_sha256* acc, const r
     size_t i;
     rustsecp256k1zkp_v0_11_0_gej_set_ge(&gj, &rustsecp256k1zkp_v0_11_0_ge_const_g);
     rustsecp256k1zkp_v0_11_0_gej_set_infinity(&infj);
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(&CTX->ecmult_gen_ctx, &rj[0], x);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &rj[0], x);
     rustsecp256k1zkp_v0_11_0_ecmult(&rj[1], &gj, x, NULL);
     rustsecp256k1zkp_v0_11_0_ecmult(&rj[2], &gj, x, &rustsecp256k1zkp_v0_11_0_scalar_zero);
     rustsecp256k1zkp_v0_11_0_ecmult(&rj[3], &infj, &rustsecp256k1zkp_v0_11_0_scalar_zero, x);
@@ -5950,6 +5964,25 @@ static void run_ecmult_constants(void) {
     }
 }
 
+static void run_ecmult_gen_ge(void) {
+    /* Test that rustsecp256k1zkp_v0_11_0_ecmult_gen_ge result matches rustsecp256k1zkp_v0_11_0_ecmult_gen_gej with
+     * manual Jacobian-to-affine conversion (rustsecp256k1zkp_v0_11_0_ge_set_gej) over random scalars */
+    int i;
+
+    for (i = 0; i < COUNT; i++) {
+        rustsecp256k1zkp_v0_11_0_scalar scalar;
+        rustsecp256k1zkp_v0_11_0_gej result_gej;
+        rustsecp256k1zkp_v0_11_0_ge result_ge, expected_ge;
+
+        testutil_random_scalar_order_test(&scalar);
+        rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &result_gej, &scalar);
+        rustsecp256k1zkp_v0_11_0_ge_set_gej(&expected_ge, &result_gej);
+        rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(&CTX->ecmult_gen_ctx, &result_ge, &scalar);
+
+        CHECK(rustsecp256k1zkp_v0_11_0_ge_eq_var(&result_ge, &expected_ge));
+    }
+}
+
 static void test_ecmult_gen_blind(void) {
     /* Test ecmult_gen() blinding and confirm that the blinding changes, the affine points match, and the z's don't match. */
     rustsecp256k1zkp_v0_11_0_scalar key;
@@ -5960,13 +5993,13 @@ static void test_ecmult_gen_blind(void) {
     rustsecp256k1zkp_v0_11_0_ge p;
     rustsecp256k1zkp_v0_11_0_ge pge;
     testutil_random_scalar_order_test(&key);
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(&CTX->ecmult_gen_ctx, &pgej, &key);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &pgej, &key);
     testrand256(seed32);
     b = CTX->ecmult_gen_ctx.scalar_offset;
     p = CTX->ecmult_gen_ctx.ge_offset;
     rustsecp256k1zkp_v0_11_0_ecmult_gen_blind(&CTX->ecmult_gen_ctx, rustsecp256k1zkp_v0_11_0_get_hash_context(CTX), seed32);
     CHECK(!rustsecp256k1zkp_v0_11_0_scalar_eq(&b, &CTX->ecmult_gen_ctx.scalar_offset));
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(&CTX->ecmult_gen_ctx, &pgej2, &key);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &pgej2, &key);
     CHECK(!gej_xyz_equals_gej(&pgej, &pgej2));
     CHECK(!rustsecp256k1zkp_v0_11_0_ge_eq_var(&p, &CTX->ecmult_gen_ctx.ge_offset));
     rustsecp256k1zkp_v0_11_0_ge_set_gej(&pge, &pgej);
@@ -5996,7 +6029,7 @@ static void test_ecmult_gen_edge_cases(void) {
 
     for (i = -1; i < 2; ++i) {
         /* Run test with gn = i - scalar_offset (so that the ecmult_gen recoded value represents i). */
-        rustsecp256k1zkp_v0_11_0_ecmult_gen(&CTX->ecmult_gen_ctx, &res1, &gn);
+        rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &res1, &gn);
         rustsecp256k1zkp_v0_11_0_ecmult(&res2, NULL, &rustsecp256k1zkp_v0_11_0_scalar_zero, &gn);
         rustsecp256k1zkp_v0_11_0_ecmult_const(&res3, &rustsecp256k1zkp_v0_11_0_ge_const_g, &gn);
         CHECK(rustsecp256k1zkp_v0_11_0_gej_eq_var(&res1, &res2));
@@ -6679,7 +6712,6 @@ static void random_sign(rustsecp256k1zkp_v0_11_0_scalar *sigr, rustsecp256k1zkp_
 }
 
 static void test_ecdsa_sign_verify(void) {
-    rustsecp256k1zkp_v0_11_0_gej pubj;
     rustsecp256k1zkp_v0_11_0_ge pub;
     rustsecp256k1zkp_v0_11_0_scalar one;
     rustsecp256k1zkp_v0_11_0_scalar msg, key;
@@ -6688,8 +6720,7 @@ static void test_ecdsa_sign_verify(void) {
     int recid;
     testutil_random_scalar_order_test(&msg);
     testutil_random_scalar_order_test(&key);
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(&CTX->ecmult_gen_ctx, &pubj, &key);
-    rustsecp256k1zkp_v0_11_0_ge_set_gej(&pub, &pubj);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(&CTX->ecmult_gen_ctx, &pub, &key);
     getrec = testrand_bits(1);
     /* The specific way in which this conditional is written sidesteps a potential bug in clang.
        See the commit messages of the commit that introduced this comment for details. */
@@ -7448,7 +7479,6 @@ static void run_ecdsa_edge_cases(void) {
 
     /* Test the case where ECDSA recomputes a point that is infinity. */
     {
-        rustsecp256k1zkp_v0_11_0_gej keyj;
         rustsecp256k1zkp_v0_11_0_ge key;
         rustsecp256k1zkp_v0_11_0_scalar msg;
         rustsecp256k1zkp_v0_11_0_scalar sr, ss;
@@ -7456,8 +7486,7 @@ static void run_ecdsa_edge_cases(void) {
         rustsecp256k1zkp_v0_11_0_scalar_negate(&ss, &ss);
         rustsecp256k1zkp_v0_11_0_scalar_inverse(&ss, &ss);
         rustsecp256k1zkp_v0_11_0_scalar_set_int(&sr, 1);
-        rustsecp256k1zkp_v0_11_0_ecmult_gen(&CTX->ecmult_gen_ctx, &keyj, &sr);
-        rustsecp256k1zkp_v0_11_0_ge_set_gej(&key, &keyj);
+        rustsecp256k1zkp_v0_11_0_ecmult_gen_ge(&CTX->ecmult_gen_ctx, &key, &sr);
         msg = ss;
         CHECK(rustsecp256k1zkp_v0_11_0_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 0);
     }
@@ -8116,6 +8145,7 @@ static const struct tf_test_entry tests_general[] = {
     CASE(all_static_context_tests),
     CASE(deprecated_context_flags_test),
     CASE(scratch_tests),
+    CASE(invalid_scratch_space_tests),
     CASE(plug_sha256_compression_tests),
     CASE(sha256_multi_block_compression_tests),
 };
@@ -8145,6 +8175,7 @@ static const struct tf_test_entry tests_scalar[] = {
 static const struct tf_test_entry tests_field[] = {
     CASE(field_half),
     CASE(field_misc),
+    CASE(fe_equal_magnitude_boundaries),
     CASE(field_convert),
     CASE(field_be32_overflow),
     CASE(fe_mul),
@@ -8165,6 +8196,7 @@ static const struct tf_test_entry tests_ecmult[] = {
     CASE(ecmult_near_split_bound),
     CASE(ecmult_chain),
     CASE(ecmult_constants),
+    CASE(ecmult_gen_ge),
     CASE(ecmult_gen_blind),
     CASE(ecmult_const_tests),
     CASE(ecmult_multi_tests),
@@ -8176,6 +8208,7 @@ static const struct tf_test_entry tests_ec[] = {
     CASE(ec_pubkey_parse_test),
     CASE(eckey_edge_case_test),
     CASE(eckey_negate_test),
+    CASE(ec_commit),
 };
 
 static const struct tf_test_entry tests_ecdsa[] = {
@@ -8197,6 +8230,7 @@ static const struct tf_test_entry tests_utils[] = {
     CASE(rustsecp256k1zkp_v0_11_0_is_zero_array_test),
     CASE(rustsecp256k1zkp_v0_11_0_byteorder_tests),
     CASE(cmov_tests),
+    CASE(util_tests),
 };
 
 /* Register test modules */
@@ -8301,3 +8335,7 @@ int main(int argc, char **argv) {
     if (tf_init(&tf, argc, argv) != 0) return EXIT_FAILURE;
     return tf_run(&tf);
 }
+
+#if defined(__GNUC__)
+# pragma GCC diagnostic pop
+#endif

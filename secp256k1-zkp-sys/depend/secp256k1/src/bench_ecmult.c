@@ -88,7 +88,7 @@ static void bench_ecmult_teardown_helper(bench_data* data, size_t* seckey_offset
             rustsecp256k1zkp_v0_11_0_scalar_add(&sum_scalars, &sum_scalars, &s);
         }
     }
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(&data->ctx->ecmult_gen_ctx, &tmp, &sum_scalars);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(&data->ctx->ecmult_gen_ctx, &tmp, &sum_scalars);
     CHECK(rustsecp256k1zkp_v0_11_0_gej_eq_var(&tmp, &sum_output));
 }
 
@@ -104,7 +104,7 @@ static void bench_ecmult_gen(void* arg, int iters) {
     int i;
 
     for (i = 0; i < iters; ++i) {
-        rustsecp256k1zkp_v0_11_0_ecmult_gen(&data->ctx->ecmult_gen_ctx, &data->output[i], &data->scalars[(data->offset1+i) % POINTS]);
+        rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(&data->ctx->ecmult_gen_ctx, &data->output[i], &data->scalars[(data->offset1+i) % POINTS]);
     }
 }
 

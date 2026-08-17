@@ -27,7 +27,7 @@ SECP256K1_INLINE static int rustsecp256k1zkp_v0_11_0_fe_equal(const rustsecp256k
     SECP256K1_FE_VERIFY(a);
     SECP256K1_FE_VERIFY(b);
     SECP256K1_FE_VERIFY_MAGNITUDE(a, 1);
-    SECP256K1_FE_VERIFY_MAGNITUDE(b, 31);
+    SECP256K1_FE_VERIFY_MAGNITUDE(b, 30);
 
     rustsecp256k1zkp_v0_11_0_fe_negate(&na, a, 1);
     rustsecp256k1zkp_v0_11_0_fe_add(&na, b);

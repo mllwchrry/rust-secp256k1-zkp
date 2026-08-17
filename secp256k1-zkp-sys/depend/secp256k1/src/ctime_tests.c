@@ -48,6 +48,11 @@
 #include "../include/secp256k1_ecdsa_adaptor.h"
 #endif
 
+#if defined(__GNUC__)
+# pragma GCC diagnostic push
+# pragma GCC diagnostic warning "-Wunused-function"
+#endif
+
 static void run_tests(rustsecp256k1zkp_v0_11_0_context *ctx, unsigned char *key);
 
 int main(void) {
@@ -357,3 +362,7 @@ static void run_tests(rustsecp256k1zkp_v0_11_0_context *ctx, unsigned char *key)
     }
 #endif
 }
+
+#if defined(__GNUC__)
+# pragma GCC diagnostic pop
+#endif

@@ -189,7 +189,7 @@ int rustsecp256k1zkp_v0_11_0_schnorrsig_aggverify(const rustsecp256k1zkp_v0_11_0
     if (overflow) {
         return 0;
     }
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(&ctx->ecmult_gen_ctx, &lhs, &s);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(&ctx->ecmult_gen_ctx, &lhs, &s);
 
     /* Check that lhs == rhs */
     rustsecp256k1zkp_v0_11_0_gej_neg(&lhs, &lhs);

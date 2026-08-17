@@ -33,8 +33,10 @@ SECP256K1_INLINE static void rustsecp256k1zkp_v0_11_0_scalar_set_u64(rustsecp256
 
 SECP256K1_INLINE static uint32_t rustsecp256k1zkp_v0_11_0_scalar_get_bits_limb32(const rustsecp256k1zkp_v0_11_0_scalar *a, unsigned int offset, unsigned int count) {
     SECP256K1_SCALAR_VERIFY(a);
-
     VERIFY_CHECK(count > 0 && count <= 32);
+    VERIFY_CHECK(offset <= 256 - count);
+    VERIFY_CHECK((offset + count - 1) >> 5 == offset >> 5);
+
     if (offset < 32) {
         return (*a >> offset) & (0xFFFFFFFF >> (32 - count));
     } else {
@@ -44,8 +46,14 @@ SECP256K1_INLINE static uint32_t rustsecp256k1zkp_v0_11_0_scalar_get_bits_limb32
 
 SECP256K1_INLINE static uint32_t rustsecp256k1zkp_v0_11_0_scalar_get_bits_var(const rustsecp256k1zkp_v0_11_0_scalar *a, unsigned int offset, unsigned int count) {
     SECP256K1_SCALAR_VERIFY(a);
+    VERIFY_CHECK(count > 0 && count <= 32);
+    VERIFY_CHECK(offset <= 256 - count);
 
-    return rustsecp256k1zkp_v0_11_0_scalar_get_bits_limb32(a, offset, count);
+    if (offset < 32) {
+        return (*a >> offset) & (0xFFFFFFFF >> (32 - count));
+    } else {
+        return 0;
+    }
 }
 
 SECP256K1_INLINE static int rustsecp256k1zkp_v0_11_0_scalar_check_overflow(const rustsecp256k1zkp_v0_11_0_scalar *a) { return *a >= EXHAUSTIVE_TEST_ORDER; }

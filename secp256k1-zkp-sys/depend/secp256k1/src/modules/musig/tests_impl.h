@@ -381,7 +381,7 @@ static void musig_api_tests(void) {
         rustsecp256k1zkp_v0_11_0_ge aggnonce_pt[2];
         rustsecp256k1zkp_v0_11_0_musig_aggnonce_load(CTX, aggnonce_pt, &aggnonce);
         for (i = 0; i < 2; i++) {
-            rustsecp256k1zkp_v0_11_0_ge_is_infinity(&aggnonce_pt[i]);
+            CHECK(rustsecp256k1zkp_v0_11_0_ge_is_infinity(&aggnonce_pt[i]) == 1);
         }
     }
     CHECK(rustsecp256k1zkp_v0_11_0_musig_nonce_agg(CTX, &aggnonce, pubnonce_ptr, 2) == 1);

@@ -41,7 +41,7 @@ static void rustsecp256k1zkp_v0_11_0_pedersen_ecmult_small(rustsecp256k1zkp_v0_1
 /* sec * G + value * G2. */
 SECP256K1_INLINE static void rustsecp256k1zkp_v0_11_0_pedersen_ecmult(const rustsecp256k1zkp_v0_11_0_ecmult_gen_context *ecmult_gen_ctx, rustsecp256k1zkp_v0_11_0_gej *rj, const rustsecp256k1zkp_v0_11_0_scalar *sec, uint64_t value, const rustsecp256k1zkp_v0_11_0_ge* genp) {
     rustsecp256k1zkp_v0_11_0_gej vj;
-    rustsecp256k1zkp_v0_11_0_ecmult_gen(ecmult_gen_ctx, rj, sec);
+    rustsecp256k1zkp_v0_11_0_ecmult_gen_gej(ecmult_gen_ctx, rj, sec);
     rustsecp256k1zkp_v0_11_0_pedersen_ecmult_small(&vj, value, genp);
     /* FIXME: constant time. */
     rustsecp256k1zkp_v0_11_0_gej_add_var(rj, rj, &vj, NULL);

@@ -623,7 +623,7 @@ SECP256K1_API const rustsecp256k1zkp_v0_11_0_nonce_function rustsecp256k1zkp_v0_
  *  Returns: 1: signature created
  *           0: the nonce generation function failed, or the secret key was invalid.
  *  Args:    ctx:       pointer to a context object (not rustsecp256k1zkp_v0_11_0_context_static).
- *  Out:     sig:       pointer to an array where the signature will be placed.
+ *  Out:     sig:       pointer to a signature object.
  *  In:      msghash32: the 32-byte message hash being signed.
  *           seckey:    pointer to a 32-byte secret key.
  *           noncefp:   pointer to a nonce generation function. If NULL,
